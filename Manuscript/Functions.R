@@ -1,3 +1,53 @@
+
+# Make data.frame of Operating Model parameters
+MakeOM_DF <- function(OMlist, LinfCV=0.1, maxsd=2) {
+  lout <- list()
+  for (i in 1:length(OMlist)) {
+    Name <- names(OMlist)[i]
+    Stock <- OMlist[[i]]
+    Linf <- mean(Stock@Linf)
+    K <- mean(Stock@K)
+    t0 <- mean(Stock@t0)
+    M <- mean(Stock@M)
+    maxage <- ceiling(-log(0.001)/M)
+    
+    L50 <- mean(Stock@L50)
+    L95 <- L50 +  mean(Stock@L50_95)
+    
+    L5 <- mean(Stock@L5) * L50
+    LFS <- mean(Stock@LFS) * L50
+    Vmaxlen <- mean(Stock@Vmaxlen)
+    sigmaR <- mean(Stock@Perr)
+    steepness <- mean(Stock@h)
+    
+    alpha <- Stock@a
+    beta <- Stock@b
+    
+    lout[[i]] <- data.frame(Stock=Name, Linf=Linf, K=K,
+               t0=t0, M=M, maxage=maxage, L50=L50, L95=L95,
+               L5=L5, LFS=LFS, Vmaxlen=Vmaxlen, sigmaR=sigmaR,
+               steepness=steepness, alpha=alpha, beta=beta, LinfCV=LinfCV,
+               maxsd=maxsd, maxL=Linf + LinfCV*Linf*maxsd)
+  }
+  do.call('rbind', lout)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 addLines <- function(LenBins) {
   for (x in 1:length(LenBins)) {
     abline(v=LenBins[x], col="lightgray", lty=3)
@@ -65,9 +115,9 @@ GTGpopsim <- function(Linf, K, t0, M, L50, L95, LFS, L5, Vmaxlen, sigmaR, steepn
   nyrs <- length(annualF)
 
   maxage <- ceiling(-log(0.01)/M) # maxium age
-  ages <- 1:maxage # in years
+  ages <- 0:maxage # in years
 
-  maxAgeind <- maxage # maxage + 1
+  maxAgeind <- maxage+1 # maxage + 1
   ageVec <- 1:maxAgeind
   ind <- as.matrix(expand.grid(1:nyrs, ageVec,1:ngtg))
   LAA <- array(NA, dim=c(nyrs, maxAgeind, ngtg)) # Length-at-age by GTG and year
@@ -94,9 +144,9 @@ GTGpopsim <- function(Linf, K, t0, M, L50, L95, LFS, L5, Vmaxlen, sigmaR, steepn
 
   # Unfished Year One
   Nunfished <- CAA <- array(NA, dim=c(nyrs, maxAgeind, ngtg))
-  SB <- array(NA, dim=c(nyrs, maxage, ngtg))
+  SB <- array(NA, dim=c(nyrs, maxage+1, ngtg))
   Nunfished[1,1,] <- rdist * R0 # distribute virgin recruitment
-  Nunfished[1,2:maxAgeind,] <- matrix(Nunfished[1,1,], nrow=maxage-1, ncol=ngtg, byrow=TRUE) *
+  Nunfished[1,2:maxAgeind,] <- matrix(Nunfished[1,1,], nrow=maxage, ncol=ngtg, byrow=TRUE) *
     exp(-apply(M_array[1,ageVec-1,], 2, cumsum))
 
   SB[1,,] <- Nunfished[1,,] * WAA[1,,] * MAA[1,,]
@@ -115,7 +165,7 @@ GTGpopsim <- function(Linf, K, t0, M, L50, L95, LFS, L5, Vmaxlen, sigmaR, steepn
     # message("Year ", yr, " of ", nyrs)
     Rec[yr] <- R0 # BHSRR(SBcurr[yr-1], SB0, R0, steepness) # recruitment
     Nfished[yr,1,] <- Rec[yr] * recdevs[yr] * rdist
-    Nfished[yr,2:maxAgeind,] <- Nfished[yr-1,1:(maxage-1),] * exp(-ZAA[yr-1,1:(maxage-1),])
+    Nfished[yr,2:maxAgeind,] <- Nfished[yr-1,1:(maxage),] * exp(-ZAA[yr-1,1:(maxage),])
     SB[yr,,] <- Nfished[yr,,] * WAA[yr,,] * MAA[yr,,]
     SBcurr[yr] <- sum(SB[yr,,])
     CAA[yr,,] <- FAA[yr,,]/ZAA[yr,,] * (1-exp(-ZAA[yr,,] * Nfished[yr,,]))

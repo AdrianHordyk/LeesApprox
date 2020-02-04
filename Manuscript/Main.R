@@ -16,6 +16,114 @@ setwd('Manuscript')
 source('Functions.r')
 Rcpp::sourceCpp('src/LeesApprox.cpp') # load CPP version of Lee's approx
 
+
+# ---- Operating Models ---- 
+OMlist <- list('Queen triggerfish'=DLMextra::Queen_Triggerfish_STT_NOAA,
+               'Stoplight parrotfish'=DLMextra::Stoplight_Parrotfish_STX_NOAA,
+               'Yellowtail snapper'=DLMextra::Yellowtail_Snapper_PR_NOAA)
+
+DF <- MakeOM_DF(OMlist)
+
+
+x <- 1
+
+ngtg <- 5
+binwidth <- 1
+
+annualF <-  Ftrend(1, 30, 0.1*DF$M[x], 'stable', 0.1, plot=FALSE)
+
+run1 <- GTGpopsim(DF$Linf[x], DF$K[x], DF$t0[x], DF$M[x], DF$L50[x], DF$L95[x],
+                  DF$LFS[x], DF$L5[x], DF$Vmaxlen[x], DF$sigmaR[x], DF$steepness[x],
+                  annualF=annualF, alpha=DF$alpha[x], beta=DF$beta[x], DF$LinfCV[x],
+                  ngtg=ngtg, maxsd=DF$maxsd[x], binwidth = binwidth)
+
+for (i in 1:ncol(DF)) {
+  assign(names(DF)[i], DF[1,i])
+}
+  
+
+
+head(run1[[1]])
+
+DF2 <- run1[[1]]
+tt <- DF2 %>% filter(Yr==Age)
+
+
+matplot(tt$Age, tt$Length, type="b")
+
+
+devtools::install_github("AckerDWM/gg3D")
+
+
+# standardize to sum to one in each age-cohort
+t2 <- tt %>% group_by(Age) %>% mutate(N2=N/sum(N)) 
+t2$N3 <- 0
+
+library(scatterplot3d)
+x <- t2$Age
+y <- t2$Length
+z <- t2$N3
+
+plot3d(x,y,z)
+
+x <- t2$Age
+y <- t2$Length
+z <- t2$N2
+
+plot3d(x,y,z, add=TRUE)
+
+
+segments3d(x[2:3],y[2:3],z[2:3],col=2,lwd=2)
+
+
+theta=0; phi=20
+ggplot(t2, aes(x=Age, y=Length, z=n3, color=as.factor(GTG))) +
+  axes_3D(theta=theta, phi=phi) +
+  stat_3D(theta=theta, phi=phi, geom="path") +
+  axes_3D(theta=theta, phi=phi) +
+  stat_3D(theta=theta, phi=phi) +
+  axis_labs_3D(theta=theta, phi=phi, size=3, 
+               hjust=c(1,1,1.2,1.2,1.2,1.2), 
+               vjust=c(-.5,-.5,-.2,-.2,1.2,1.2)) +
+  labs_3D(theta=theta, phi=phi, 
+          hjust=c(1,0,0), vjust=c(1.5,1,-.2),
+          labs=c("Age", "Length", "Z")) +
+  theme_void()
+ 
+
+t3 <- t2 %>% filter(Age==12)
+plot(t3$Length, t3$N2, type="b")
+
+
+lattice::wireframe(N ~ Age * Length, data=t2)
+
+
+
+
+x <- 1:5/10
+y <- 1:5
+z <- x %o% y
+z <- z + .2*z*runif(25) - .1*z
+
+library(rgl)
+persp3d(x, y, z, col="skyblue")
+t2 <- t2 %>% arrange(Age, GTG, Length)
+
+
+
+persp3d(t2$Age, t2$Length, t2$N2, col="skyblue")
+
+
+
+
+s <- scatterplot3d(x,y,z)
+p2 <- s$xyz.convert(x[2],y[2],z[2])
+p3 <- s$xyz.convert(x[3],y[3],z[3])
+segments(p2$x,p2$y,p3$x,p3$y,lwd=2,col=2)
+
+
+
+
 # ---- Figure 1 ----
 
 source('Figure_1.r')

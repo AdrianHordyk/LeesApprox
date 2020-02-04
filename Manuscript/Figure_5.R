@@ -34,8 +34,6 @@ GenerateData <- function(Stock=1, DatYears=10, CobCV=0.1, IobCV=0.1,
   beta <- Stock@b
   LinfCV <- 0.1
   
- 
-  
   LHpars <- data.frame(Stock=StockNames[st], Linf=Linf, K=K,
                        t0=t0, M=M, maxage=maxage, L50=L50, L95=L95,
                        L5=L5, LFS=LFS, Vmaxlen=Vmaxlen, sigmaR=sigmaR,

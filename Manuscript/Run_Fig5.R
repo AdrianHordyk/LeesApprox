@@ -7,21 +7,21 @@ library(DLMextra)
 source('Manuscript/functions.r')
 source('Manuscript/Figure_5.r')
 
-set.seed(1001)
+set.seed(101)
 CVs <- 0.05 # obs error on index and catches
 LH_CV <- 0.05 # obs error on life-history parameters
 
 LengthSampSize <- 100
 AgeSampSize <- 100
-DatYears <- 45 # NA = data from all years, otherwise index, CAA and CAL data for last `DatYears` years
+DatYears <- NA # NA = data from all years, otherwise index, CAA and CAL data for last `DatYears` years
 
 vulnerability <- 'logistic' # 'dome'
 fix_sigma <- TRUE 
 
 control <- list(iter.max = 5e+05, eval.max = 7e+05)
 # Fit Assessment Models - Only CAA data 
-CAA_multiplier <- 0
-CAL_multiplier <- 100
+CAA_multiplier <- 10
+CAL_multiplier <- 0
 ngtg_assess <- 11
 
 Stock <- 1
@@ -38,8 +38,6 @@ Data <- genData$Data
 LHpars <- genData$LHpars
 
 
-
-
 # with GTG approx
 Mod1 <- SCA_GTG(Data = Data, ngtg=ngtg_assess, vulnerability = vulnerability,
                 CAA_multiplier=CAA_multiplier, rescale = 1,
@@ -54,21 +52,22 @@ Mod2 <- SCA_GTG(Data = Data, ngtg=ngtg_assess, vulnerability = vulnerability,
                 control=control,
                 fix_sigma =fix_sigma)
 
-
-
-plot(annualF, type="l", ylim=c(0, max(annualF*1.5)))
-lines(Mod1@FMort, col='blue')
-lines(Mod2@FMort, col="green") # expect Mod2 and Mod3 to be similiar
+# plot(annualF, type="l", ylim=c(0, max(annualF*1.5)))
+# lines(Mod1@FMort, col='blue')
+# lines(Mod2@FMort, col="green") # expect Mod2 and Mod3 to be similiar
 
 
 plot(genData$Index/genData$Index[1], type="l", ylim=c(0, 1.5))
-lines(Mod1@B_B0, col='blue')
-lines(Mod2@B_B0, col="green") # B_B0 > 1
+lines(Mod1@SSB_SSB0, col='blue')
+lines(Mod2@SSB_SSB0, col="green") # B_B0 > 1
 legend('topright', bty="n", col=c('black', 'blue', 'green'), 
        lty=1, legend=c("index", 'b_b0 - approx', 'b_b0 - no approx'))
 
 
+plot(Mod1)
 
+Mod1@conv
+Mod2@conv
 
 
 
@@ -206,9 +205,9 @@ lines(Mod2@FMort, col="green") # expect Mod2 and Mod3 to be similiar
 lines(Mod3@FMort, col="red")
 
 plot(genData$Index/genData$Index[1], type="l", ylim=c(0, 1.5))
-lines(Mod1@B_B0, col='blue')
-lines(Mod2@B_B0, col="green") # B_B0 > 1
-lines(Mod3@B_B0, col="red") # B_B0 > 1
+lines(Mod1@SSB_SSB0, col='blue')
+lines(Mod2@SSB_SSB0, col="green") # B_B0 > 1
+lines(Mod3@SSB_SSB0, col="red") # B_B0 > 1
 
 
 

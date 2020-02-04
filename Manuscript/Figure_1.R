@@ -1,3 +1,27 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Figure1 <- function(height=4, width=6, res=400, save=TRUE) {
   if (save) png('Figures/Figure1.png', units='in', height=height, width=width,
                 res=res)
