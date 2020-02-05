@@ -33,6 +33,69 @@ MakeOM_DF <- function(OMlist, LinfCV=0.1, maxsd=2) {
 }
 
 
+EqGTG <- function(x, DF, ngtg=5, Fmulti=1, binwidth=1, R0=1E4) { # equilibrium GTG model
+  
+  for (i in 1:ncol(DF)) {
+    assign(names(DF)[i], DF[x,i])
+  }
+
+  distGTG <- seq(from=-maxsd, to=maxsd, length.out = ngtg)
+  rdist <- dnorm(distGTG, 0, 1)/sum(dnorm(distGTG, 0, 1))
+  Linfgtg <- Linf + LinfCV*Linf*distGTG
+  
+  LenBins <- seq(0, to=max(Linfgtg), by=binwidth)
+  Nbins <- length(LenBins) -1
+  By <- LenBins[2] - LenBins[1]
+  LenMids <- seq(from=By*0.5, by=By, length.out = Nbins)
+  
+  ages <- 0:maxage # in years
+
+  LAA <- array(NA, dim=c(maxage+1, ngtg)) # Length-at-age by GTG 
+  ind <- as.matrix(expand.grid(ages+1,1:ngtg))
+  LAA[ind] <- (Linfgtg[ind[,2]] * (1-exp(-K *(ages[ind[,1]]-t0))))
+  WAA <- alpha * LAA^beta  # Weight-at-age by GTG
+  
+  # Maturity
+  
+  L50gtg <- matrix(L50/Linf * Linfgtg, ncol=ngtg, nrow=maxage+1,byrow=TRUE)  # assume constant L50/Linf across GTGs
+  L95gtg <- array(NA, dim=dim(L50gtg))
+  L95gtg[ind] <- L50gtg[ind] + (L95-L50)
+  MAA <- 1/(1 + exp(-log(19) * ((LAA - L50gtg)/(L95gtg-L50gtg)))) # Maturity-at-age by GTG
+  
+  # selectivity-at-length - fishery
+  sl <- (LFS - L5) /((-log(0.05,2))^0.5)
+  sr <- (Linf - LFS) / ((-log(Vmaxlen,2))^0.5) # selectivity parameters are constant for all years
+  SAA <- matrix(dnormal(LAA, LFS, sl, sr), nrow=maxage+1, ncol=ngtg) # selectivty-at-age by GTG 
+  SL <- dnormal(LenMids, LFS, sl, sr)
+  
+  M_array <- matrix(M, nrow=maxage+1, ncol=ngtg) 
+  FAA <- array(NA, dim=dim(SAA))
+  Fmort <- Fmulti * M 
+  FAA <- SAA * Fmort # fishing mortality at age by GTG 
+  ZAA <- FAA + M_array # Z-at-age by GTG 
+  
+  NAA <- CAA <- matrix(NA, nrow=maxage+1, ncol=ngtg)
+  NAA[1,] <- R0 * rdist
+  for (a in 1:maxage) {
+    ageind <- a + 1 
+    NAA[ageind,] <- NAA[ageind-1,] * exp(-ZAA[ageind-1,])
+  }
+  CAA <- FAA/ZAA * (1-exp(-ZAA*NAA)) # catch in numbers
+  
+  out <- list()
+  df <- data.frame(Age=ages, 
+                   N=as.vector(NAA),
+                   Select=as.vector(SAA), 
+                   Length=as.vector(LAA),
+                   Weight=as.vector(WAA),
+                   GTG=rep(1:ngtg, each=(maxage+1)),
+                   Linf=rep(Linfgtg, each=(maxage+1)),
+                   CAA=as.vector(CAA))
+  out$df <- df
+  out$LenBins <- LenBins
+  out$LenMids <- LenMids
+  out
+}
 
 
 
@@ -55,11 +118,11 @@ addLines <- function(LenBins) {
 }
 
 addBars <- function(probdf, col2) {
-  yrs <- unique(probdf$Yr)
-  temp <- probdf %>% dplyr::filter(Yr==yrs[2])
+
+  temp <- probdf 
   for (x in 1:nrow(probdf)) {
     polygon(x=c(temp$Bin1[x], temp$Bin2[x], temp$Bin2[x], temp$Bin1[x]),
-            y=c(0, 0, temp$Prob[x], temp$Prob[x]), col=col2)
+            y=c(0, 0, temp$Prob[x], temp$Prob[x]), col=col2, xpd=NA)
   }
 }
 
@@ -115,9 +178,9 @@ GTGpopsim <- function(Linf, K, t0, M, L50, L95, LFS, L5, Vmaxlen, sigmaR, steepn
   nyrs <- length(annualF)
 
   maxage <- ceiling(-log(0.01)/M) # maxium age
-  ages <- 0:maxage # in years
+  ages <- 1:maxage # in years
 
-  maxAgeind <- maxage+1 # maxage + 1
+  maxAgeind <- maxage # maxage + 1
   ageVec <- 1:maxAgeind
   ind <- as.matrix(expand.grid(1:nyrs, ageVec,1:ngtg))
   LAA <- array(NA, dim=c(nyrs, maxAgeind, ngtg)) # Length-at-age by GTG and year
@@ -144,9 +207,9 @@ GTGpopsim <- function(Linf, K, t0, M, L50, L95, LFS, L5, Vmaxlen, sigmaR, steepn
 
   # Unfished Year One
   Nunfished <- CAA <- array(NA, dim=c(nyrs, maxAgeind, ngtg))
-  SB <- array(NA, dim=c(nyrs, maxage+1, ngtg))
+  SB <- array(NA, dim=c(nyrs, maxage, ngtg))
   Nunfished[1,1,] <- rdist * R0 # distribute virgin recruitment
-  Nunfished[1,2:maxAgeind,] <- matrix(Nunfished[1,1,], nrow=maxage, ncol=ngtg, byrow=TRUE) *
+  Nunfished[1,2:maxAgeind,] <- matrix(Nunfished[1,1,], nrow=maxage-1, ncol=ngtg, byrow=TRUE) *
     exp(-apply(M_array[1,ageVec-1,], 2, cumsum))
 
   SB[1,,] <- Nunfished[1,,] * WAA[1,,] * MAA[1,,]
@@ -165,7 +228,7 @@ GTGpopsim <- function(Linf, K, t0, M, L50, L95, LFS, L5, Vmaxlen, sigmaR, steepn
     # message("Year ", yr, " of ", nyrs)
     Rec[yr] <- R0 # BHSRR(SBcurr[yr-1], SB0, R0, steepness) # recruitment
     Nfished[yr,1,] <- Rec[yr] * recdevs[yr] * rdist
-    Nfished[yr,2:maxAgeind,] <- Nfished[yr-1,1:(maxage),] * exp(-ZAA[yr-1,1:(maxage),])
+    Nfished[yr,2:maxAgeind,] <- Nfished[yr-1,1:(maxage-1),] * exp(-ZAA[yr-1,1:(maxage-1),])
     SB[yr,,] <- Nfished[yr,,] * WAA[yr,,] * MAA[yr,,]
     SBcurr[yr] <- sum(SB[yr,,])
     CAA[yr,,] <- FAA[yr,,]/ZAA[yr,,] * (1-exp(-ZAA[yr,,] * Nfished[yr,,]))
