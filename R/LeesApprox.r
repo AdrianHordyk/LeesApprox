@@ -1,3 +1,13 @@
+#' Double-normal selectivity function
+#'
+#' @param lens Vector of lengths
+#' @param lfs Length at full selectivity
+#' @param sl Slope of left curve
+#' @param sr Slope of right curve
+#'
+#' @return Selectivity vector for `lens`
+#' @export
+#'
 dnormal<-function(lens,lfs,sl,sr){
   cond<-lens<=lfs
   sel<-rep(NA,length(lens))
@@ -6,6 +16,16 @@ dnormal<-function(lens,lfs,sl,sr){
   sel
 }
 
+
+#' Calculate Probability for Length Classes
+#'
+#' @param tempLens Vector of Lengths
+#' @param tempNs Vector of numbers for each length in tempLens
+#' @param xout Points to interpolate at
+#' @param LenBins Length bins 
+#'
+#' @return Probability for each length bin
+#' @export
 calcprobR <- function(tempLens, tempNs, xout, LenBins) {
   # yout <- linear_int(tempLens, tempNs, xout);
   yout <- approx(tempLens, tempNs, xout)[[2]]
@@ -40,6 +60,26 @@ calcprobR <- function(tempLens, tempNs, xout, LenBins) {
   Probout
 }
 
+
+#' R version of approximation method for Lee's Phenomenon
+#'
+#' @param FVec Annual Fs
+#' @param ngtg Number of growth-type-groups
+#' @param maxsd Maximum number of standard deviations for length-at-age dist
+#' @param binwidth Width of length bins
+#' @param M Natural mortality
+#' @param Linf Asymptotic length
+#' @param K von B K parameter
+#' @param t0 von B t0
+#' @param LFS Length at full selection
+#' @param L5 First length at 5% selection
+#' @param Vmaxlen Vulnerability at maximum length
+#' @param LinfCV CV of length-at-age dist
+#' @param maxage maximum age
+#'
+#' @return A list
+#' @export
+#'
 LeesApproxR <- function(FVec, ngtg=1001, maxsd, binwidth, M,
                         Linf, K, t0,  LFS, L5, Vmaxlen, LinfCV, maxage) {
 
