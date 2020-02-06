@@ -7,7 +7,6 @@
 #'
 #' @return Selectivity vector for `lens`
 #' @export
-#'
 dnormal<-function(lens,lfs,sl,sr){
   cond<-lens<=lfs
   sel<-rep(NA,length(lens))
@@ -79,7 +78,6 @@ calcprobR <- function(tempLens, tempNs, xout, LenBins) {
 #'
 #' @return A list
 #' @export
-#'
 LeesApproxR <- function(FVec, ngtg=1001, maxsd, binwidth, M,
                         Linf, K, t0,  LFS, L5, Vmaxlen, LinfCV, maxage) {
 
