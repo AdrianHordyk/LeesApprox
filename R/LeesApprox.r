@@ -29,15 +29,15 @@ calcprobR <- function(tempLens, tempNs, xout, LenBins) {
   # yout <- linear_int(tempLens, tempNs, xout);
   yout <- approx(tempLens, tempNs, xout)[[2]]
   yout[is.na(yout)] <- 0
-
+  
   nclasses <- length(LenBins)-1
   Prob <- rep(0, nclasses)
   for (i in 1:nclasses) {
     L1 <- LenBins[i]
     L2 <- LenBins[i+1]
-    ind <- (xout >=L1) & (xout <= L2)
+    ind <- (xout >=L1) & (xout < L2)
     if (sum(ind)==1) {
-      Prob[i] <- youtp[i]
+      Prob[i] <- yout[which(ind)]
     } else {
       Ys <- yout[ind]
       Xs <- xout[ind]
@@ -57,6 +57,7 @@ calcprobR <- function(tempLens, tempNs, xout, LenBins) {
   }
   Probout <- Prob/sum(Prob)
   Probout
+  
 }
 
 
@@ -132,13 +133,31 @@ LeesApproxR <- function(FVec, ngtg=1001, maxsd, binwidth, M,
 
   # Calculate prob L|A
   Nbins <- length(LenMids)
-  probLA <- matrix(0, maxage, Nbins)
+  probLA <- probLA2 <- matrix(0, maxage, Nbins)
   for (age in 1:maxage) {
     tempLens <- LAA[age,]
     tempNs <- Ns[age,]
     xout <- c(LenBins, tempLens) %>% sort()
     probLA[age,] <- calcprobR(tempLens, tempNs, xout, LenBins)
+    for (l in seq_along(LenMids)) {
+      
+      ind <- LAA[age,] >= LenBins[l] & LAA[age,] < LenBins[l+1]
+      probLA2[age,l] <- probLA2[age,l] + sum(tempNs[ind])
+      
+    }
   }
+  
+  apply(probLA, 1,sum)
+  probLA2 <- probLA2/ apply(probLA2, 1,sum)
+  
+  age <- 10
+  plot(LenMids, probLA[age,], type="l")
+  lines(LenMids, probLA2[age,], col='blue')
+  cbind(LenMids, probLA[age,], probLA2[age,])
+  
+  
+  
+  
 
   # Calculate mean selectivity-at-age
   Select_at_age <- rep(0,maxage)
