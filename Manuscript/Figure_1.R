@@ -1,8 +1,7 @@
 
-Figure1 <- function(save=TRUE) {
+Figure1 <- function(ngtg=11, save=TRUE) {
   if (save) png('Figures/Figure1.png', units='mm',
                 height=100, width=170, res=300)
-  ngtg <- 11
   binwidth <- 5
   colors <-  qualitative_hcl(ngtg, palette = "Dark 3")
   
