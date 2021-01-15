@@ -26,10 +26,55 @@ source('Figure_1.r')
 Figure1()
 
 
+FVec <- seq(0, 0.2, length.out=30)
+
+run <- LeesApproxR(FVec, ngtg=11, maxsd=2.5, binwidth=5, M=0.2,
+                   Linf=100, K=0.15, t0=0, LFS=60, L5=59, Vmaxlen=1, 
+                   LinfCV=0.1, maxage=30)
+  
+
+probLA <- run[[1]]
+LenComp <- run[[2]]
+Select_at_length <- run[[4]]
+LenMids <- run[[6]]
+NAA <- run[[8]] * 1000
+
+LenComp2 <- probLA %*% Select_at_length
+
+plot(LenComp2, type="b")
+lines(run[[3]])
+
+age <- 2
+
+probLAC <- array(NA, dim=dim(probLA))
+for (age in 1:nrow(probLA)) {
+  probLAC[age,] <- probLA[age,] * Select_at_length
+}
+
+apply(probLA, 1, sum) 
+probLAC <- probLAC/apply(probLAC, 1, sum) 
+probLAC[!is.finite(probLAC)] <- 0
 
 
 
+Nbins <- length(LenMids)
+LenComp <- LenComp2 <- rep(0, Nbins)
+for (l in 1:Nbins) {
+  LenComp[l] <- sum(probLA[,l] * Select_at_length[l] * NAA)
+}
+LenComp <- LenComp/sum(LenComp)
 
+CAA <- NAA * run[[3]]
+
+for (l in seq_along(LenMids)) {
+  LenComp2[l] <- sum(probLAC[,l] * CAA/sum(CAA))  
+}
+
+plot(LenMids, LenComp, type="b")
+lines(LenMids, LenComp2, col='blue')
+
+
+run[[3]]*NAA
 
 
 

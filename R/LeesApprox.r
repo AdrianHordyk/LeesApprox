@@ -57,7 +57,6 @@ calcprobR <- function(tempLens, tempNs, xout, LenBins) {
   }
   Probout <- Prob/sum(Prob)
   Probout
-  
 }
 
 
@@ -126,43 +125,25 @@ LeesApproxR <- function(FVec, ngtg=1001, maxsd, binwidth, M,
     age_end <- age-1
     Zs <- rep(0, ngtg)
     for (age2 in 1:age_end) {
-      Zs <- Zs + M + FVec2[yr_st+age2] *SAA[age2,]
+      Zs <- Zs + M + FVec2[yr_st+age2]*SAA[age2,]
     }
     Ns[age,] <- Ns[1,] * exp(-Zs)
   }
 
   # Calculate prob L|A
   Nbins <- length(LenMids)
-  probLA <- probLA2 <- matrix(0, maxage, Nbins)
+  probLA <- matrix(0, maxage, Nbins)
   for (age in 1:maxage) {
     tempLens <- LAA[age,]
     tempNs <- Ns[age,]
     xout <- c(LenBins, tempLens) %>% sort()
     probLA[age,] <- calcprobR(tempLens, tempNs, xout, LenBins)
-    for (l in seq_along(LenMids)) {
-      
-      ind <- LAA[age,] >= LenBins[l] & LAA[age,] < LenBins[l+1]
-      probLA2[age,l] <- probLA2[age,l] + sum(tempNs[ind])
-      
-    }
   }
-  
-  apply(probLA, 1,sum)
-  probLA2 <- probLA2/ apply(probLA2, 1,sum)
-  
-  age <- 10
-  plot(LenMids, probLA[age,], type="l")
-  lines(LenMids, probLA2[age,], col='blue')
-  cbind(LenMids, probLA[age,], probLA2[age,])
-  
-  
-  
-  
-
+ 
   # Calculate mean selectivity-at-age
   Select_at_age <- rep(0,maxage)
   for (age in 1:maxage) {
-    Select_at_age[age] <- Select_at_age[age] + sum(probLA[age,] * Select_at_length)
+    Select_at_age[age] <- sum(probLA[age,] * Select_at_length)
   }
 
   # Calculate mean length-at-age
@@ -171,6 +152,7 @@ LeesApproxR <- function(FVec, ngtg=1001, maxsd, binwidth, M,
     Len_at_age[age] <- weighted.mean(LAA[age,], Ns[age,]) # sum(LAA[age,] * Ns[age,])/sum(Ns[age,])
   }
 
+  
   # Calculate fished length composition
   NAA <- apply(Ns, 1, sum)
 
